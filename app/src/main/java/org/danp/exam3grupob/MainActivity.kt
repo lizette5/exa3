@@ -26,11 +26,9 @@ typealias PixelsListener = (pixels: List<Int>) -> Unit
 
 class MainActivity : AppCompatActivity() {
     private lateinit var viewBinding: ActivityMainBinding
-    private lateinit var viewBinding2: ActivityMainBinding
     private var imageCapture: ImageCapture? = null
     private var imageCapture2: ImageCapture? = null
     private lateinit var cameraExecutor: ExecutorService
-    private lateinit var cameraExecutor2: ExecutorService
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -38,11 +36,10 @@ class MainActivity : AppCompatActivity() {
         viewBinding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(viewBinding.root)
 
-        viewBinding2 = ActivityMainBinding.inflate(layoutInflater)
-        setContentView(viewBinding2.root)
 
         if (allPermissionsGranted()) {
             startCamera()
+            startCamera2()
         } else {
             ActivityCompat.requestPermissions(
                 this, REQUIRED_PERMISSIONS, REQUEST_CODE_PERMISSIONS
@@ -50,10 +47,8 @@ class MainActivity : AppCompatActivity() {
         }
 
         viewBinding.imageCaptureButton.setOnClickListener { takePhoto() }
-        viewBinding2.imageCaptureButton.setOnClickListener { takePhoto() }
 
         cameraExecutor = Executors.newSingleThreadExecutor()
-        cameraExecutor2 = Executors.newSingleThreadExecutor()
     }
 
     private fun takePhoto() {
@@ -107,12 +102,7 @@ class MainActivity : AppCompatActivity() {
                 .also {
                     it.setSurfaceProvider(viewBinding.viewFinder.surfaceProvider)
                 }
-            val preview2 = Preview.Builder()
-                .setTargetResolution(Size(90,50))
-                .build()
-                .also {
-                    it.setSurfaceProvider(viewBinding.viewFinder.surfaceProvider)
-                }
+
             imageCapture = ImageCapture.Builder().build()
 
             //Analizar imagen
@@ -130,6 +120,46 @@ class MainActivity : AppCompatActivity() {
                 cameraProvider.unbindAll()
                 cameraProvider.bindToLifecycle(
                     this, cameraSelector, preview, imageCapture, imageAnalyzer
+                )
+            } catch (exc: Exception) {
+                Log.e(TAG, "Use case binding failed", exc)
+            }
+        }, ContextCompat.getMainExecutor(this))
+
+    }
+
+    private fun startCamera2() {
+        val cameraProviderFuture = ProcessCameraProvider.getInstance(this)
+
+        cameraProviderFuture.addListener({
+            val cameraProvider: ProcessCameraProvider = cameraProviderFuture.get()
+
+
+            val preview2 = Preview.Builder()
+                .setTargetResolution(Size(90,50))
+                .build()
+                .also {
+                    it.setSurfaceProvider(viewBinding.viewFinder2.surfaceProvider)
+                }
+            imageCapture2 = ImageCapture.Builder().build()
+
+            //Analizar imagen
+            val imageAnalyzer = ImageAnalysis.Builder()
+                .setOutputImageFormat(ImageAnalysis.OUTPUT_IMAGE_FORMAT_RGBA_8888)
+                .setTargetResolution(Size(90,50))
+                .build()
+                .also {
+                    it.setAnalyzer(cameraExecutor, LuminosityAnalyzer { pixels ->
+                        Log.d("Pixeles size: ", pixels.size.toString())
+                    })
+                }// fin de analisis
+
+            val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
+
+            try {
+                cameraProvider.unbindAll()
+                cameraProvider.bindToLifecycle(
+                    this, cameraSelector, preview2, imageCapture2, imageAnalyzer
                 )
             } catch (exc: Exception) {
                 Log.e(TAG, "Use case binding failed", exc)
@@ -175,6 +205,7 @@ class MainActivity : AppCompatActivity() {
         if (requestCode == REQUEST_CODE_PERMISSIONS) {
             if (allPermissionsGranted()) {
                 startCamera()
+                startCamera2()
             } else {
                 Toast.makeText(
                     this,
