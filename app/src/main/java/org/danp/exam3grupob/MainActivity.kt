@@ -39,6 +39,7 @@ class MainActivity : AppCompatActivity() {
 
         if (allPermissionsGranted()) {
             startCamera()
+            // se debe comentar cualquier metodo para ver las dos vistas de difuminado y normal
             startCamera2()
         } else {
             ActivityCompat.requestPermissions(
@@ -127,7 +128,7 @@ class MainActivity : AppCompatActivity() {
         }, ContextCompat.getMainExecutor(this))
 
     }
-
+/// es para difuminar
     private fun startCamera2() {
         val cameraProviderFuture = ProcessCameraProvider.getInstance(this)
 
